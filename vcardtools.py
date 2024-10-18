@@ -9,6 +9,7 @@ import re
 from sys import stderr, exit as sysexit
 from os import makedirs
 from os.path import exists, isfile, split as pathsplit
+from unidecode import unidecode
 import vcardlib
 from vcardlib import (
     get_vcards_from_files,
@@ -147,12 +148,15 @@ def generate_vcard_filename(a_name: str = '', ext: str = '') -> str:
     """ Make a vcard filename, by first sanitising the filename
         and then adding the defined extension.
     """
-    return sanitise_name(a_name=a_name) + ext
+    ret = sanitise_name(a_name=a_name) + ext
+    # remove other unwanted character in file name like french accents
+    return unidecode(ret).lower()
 
 def generate_group_dirname(a_name: str = '') -> str:
     """ Return a group name, sanitised
     """
-    return sanitise_name(a_name=a_name)
+    ret = sanitise_name(a_name=a_name)
+    return unidecode(ret).lower()
 
 def main():  # pylint: disable=too-many-statements,too-many-branches
     """Main program : running the command line."""
