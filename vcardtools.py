@@ -9,6 +9,7 @@ import re
 from sys import stderr, exit as sysexit
 from os import makedirs
 from os.path import exists, isfile, split as pathsplit
+from unidecode import unidecode
 import vcardlib
 from vcardlib import (
     get_vcards_from_files,
@@ -131,17 +132,28 @@ def init_parser():
     return parser
 
 def sanitise_name(a_name: str) -> str:
-    """ Sanitise the name, basically a filename,
-        by removing characters which would cause a problem when creating a file in the OS
-        and replacing them with something safe (in this case, an underscore)
     """
-    FROM_CHARACTERS = '.\\/"\'!@#?$%^&*|(){};:<>[]'
-    if OPTION_NO_SPACE_IN_FILENAME:
-        FROM_CHARACTERS = ' ' + FROM_CHARACTERS
-    a_name = re.sub(r'[' + FROM_CHARACTERS + ']*', OPTION_REPLACE_INVALID_FILENAME_CHAR_BY, a_name)
+    Sanitises a filename by removing accents, and replacing invalid characters.
 
-    return re.sub(OPTION_REPLACE_INVALID_FILENAME_CHAR_BY + '+',
-                  OPTION_REPLACE_INVALID_FILENAME_CHAR_BY, a_name)
+    Args:
+    - a_name: The original filename to be sanitised.
+
+    Returns:
+    - The sanitised filename.
+    """
+    # Convert to ASCII and remove accents
+    sanitised = unidecode(a_name)
+
+    # Define characters that are invalid in filenames
+    invalid_characters = r'.\\/"\'!@#?$%^&*|(){};:<>[]'
+    if OPTION_NO_SPACE_IN_FILENAME:
+        invalid_characters = ' ' + invalid_characters
+
+    # Replace all invalid characters with the specified replacement character
+    sanitised = re.sub(f'[{re.escape(invalid_characters)}]+', OPTION_REPLACE_INVALID_FILENAME_CHAR_BY, sanitised)
+
+    # Replace multiple consecutive replacement characters with a single one
+    return re.sub(f'{re.escape(OPTION_REPLACE_INVALID_FILENAME_CHAR_BY)}+', OPTION_REPLACE_INVALID_FILENAME_CHAR_BY, sanitised)
 
 def generate_vcard_filename(a_name: str = '', ext: str = '') -> str:
     """ Make a vcard filename, by first sanitising the filename
@@ -280,7 +292,6 @@ def main():  # pylint: disable=too-many-statements,too-many-branches
                 if len(g_list) > 1:
                     logging.debug("\t%s (%d vcards)", g_name, len(g_list))
                     d_path = args.dest_dir + "/" + generate_group_dirname(g_name)
-                    # d_path = args.dest_dir + "/" + g_name.replace('/', '-')
 
                     # merge
                     if args.merge_vcards:
@@ -306,8 +317,6 @@ def main():  # pylint: disable=too-many-statements,too-many-branches
                             write_vcard_to_file(
                                 vcards[key],
                                 d_path + '/' + generate_vcard_filename(key, the_vcard_ext))
-                                # d_path + '/' + sanitise_name(key) + '.vcard')
-                                # d_path + '/' + key.replace('/', '-') + '.vcard')
                 else: # should not happen
                     raise RuntimeError("Only one vcard in group '" + g_name + "' "
                                        "(should not happen)")
@@ -320,8 +329,6 @@ def main():  # pylint: disable=too-many-statements,too-many-branches
                     write_vcard_to_file(
                         vcards[key],
                         args.dest_dir + '/' + generate_vcard_filename(key, the_vcard_ext))
-                        # args.dest_dir + '/' + sanitise_name(key) + '.vcard')
-                        # args.dest_dir + '/' + key.replace('/', '-') + '.vcard')
 
         # no grouping
         elif vcards:
@@ -330,8 +337,6 @@ def main():  # pylint: disable=too-many-statements,too-many-branches
             logging.info("Creating '%d' not grouped vCard files (in root dir) ...", len(vcards))
             for key, vcard in vcards.items():
                 write_vcard_to_file(vcard, args.dest_dir + '/' + generate_vcard_filename(key, the_vcard_ext))
-                # write_vcard_to_file(vcard, args.dest_dir + '/' + sanitise_name(key) + '.vcard')
-                # write_vcard_to_file(vcard, args.dest_dir + '/' + key.replace('/', '-') + '.vcard')
 
 
     # user CTRL-C
