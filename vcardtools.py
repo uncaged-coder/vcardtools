@@ -21,6 +21,7 @@ from vcardlib import (
 
 DEFAULT_VCARD_EXTENSION = '.vcard'
 OPTION_NO_SPACE_IN_FILENAME = False
+OPTION_FORCE_LOWER_CASE_IN_FILENAME = False
 OPTION_REPLACE_INVALID_FILENAME_CHAR_BY = '_'
 
 def init_parser():
@@ -119,6 +120,10 @@ def init_parser():
              OPTION_REPLACE_INVALID_FILENAME_CHAR_BY + "' (or option --rep-invalid-fn-char-by)."
     )
     parser.add_argument(
+        '--force-lower-case-in-filename', dest='force_lower_case_in_filename', action='store_true',
+        help="Replace upper case into lower case in generated filename"
+    )
+    parser.add_argument(
         '--rep-invalid-fn-char-by', dest='rep_invalid_fn_char_by', type=str,
         default=OPTION_REPLACE_INVALID_FILENAME_CHAR_BY,
         help="Replace invalid characters in filename by the specified character. Default to '" +
@@ -133,7 +138,8 @@ def init_parser():
 
 def sanitise_name(a_name: str) -> str:
     """
-    Sanitises a filename by removing accents, and replacing invalid characters.
+    Sanitises a filename by converting it to lowercase, removing accents, and replacing invalid characters.
+    Allows or disallows spaces based on the 'OPTION_NO_SPACE_IN_FILENAME' option.
 
     Args:
     - a_name: The original filename to be sanitised.
@@ -143,6 +149,9 @@ def sanitise_name(a_name: str) -> str:
     """
     # Convert to ASCII and remove accents
     sanitised = unidecode(a_name)
+
+    if OPTION_FORCE_LOWER_CASE_IN_FILENAME:
+        sanitised = sanitised.lower()
 
     # Define characters that are invalid in filenames
     invalid_characters = r'.\\/"\'!@#?$%^&*|(){};:<>[]'
@@ -168,7 +177,7 @@ def generate_group_dirname(a_name: str = '') -> str:
 
 def main():  # pylint: disable=too-many-statements,too-many-branches
     """Main program : running the command line."""
-    global OPTION_NO_SPACE_IN_FILENAME, OPTION_REPLACE_INVALID_FILENAME_CHAR_BY
+    global OPTION_NO_SPACE_IN_FILENAME, OPTION_REPLACE_INVALID_FILENAME_CHAR_BY, OPTION_FORCE_LOWER_CASE_IN_FILENAME
 
     try:  # pylint: disable=too-many-nested-blocks
         parser = init_parser()
@@ -228,6 +237,8 @@ def main():  # pylint: disable=too-many-statements,too-many-branches
 
         # no space in filename
         OPTION_NO_SPACE_IN_FILENAME = args.no_space_in_filename
+
+        OPTION_FORCE_LOWER_CASE_IN_FILENAME = args.force_lower_case_in_filename
 
         # replacement of invalid chars in filename
         OPTION_REPLACE_INVALID_FILENAME_CHAR_BY = args.rep_invalid_fn_char_by
